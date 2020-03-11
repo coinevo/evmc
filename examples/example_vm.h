@@ -3,16 +3,20 @@
  * Licensed under the Apache License, Version 2.0. See the LICENSE file.
  */
 
-#include <evmc/evmc.h>
+#pragma once
 
-#if __cplusplus
+#include <evmc/evmc.h>
+#include <evmc/utils.h>
+
+#ifdef __cplusplus
 extern "C" {
 #endif
 
-struct evmc_context* example_host_create_context();
+/**
+ * Creates EVMC Example VM.
+ */
+EVMC_EXPORT struct evmc_instance* evmc_create_example_vm(void);
 
-void example_host_destroy_context(struct evmc_context* context);
-
-#if __cplusplus
+#ifdef __cplusplus
 }
 #endif

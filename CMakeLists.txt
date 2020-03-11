@@ -1,74 +1,58 @@
 # EVMC: Ethereum Client-VM Connector API.
-# Copyright 2016-2019 The EVMC Authors.
+# Copyright 2019 The EVMC Authors.
 # Licensed under the Apache License, Version 2.0.
 
-cmake_minimum_required(VERSION 3.10)
-
-if(POLICY CMP0074)
-    cmake_policy(SET CMP0074 NEW)
-endif()
+cmake_minimum_required(VERSION 3.5)
 
 if(TARGET evmc)
     # The evmc library has been already created (probably by other submodule).
     return()
 endif()
 
+option(EVMC_TESTING "Build EVMC tests and test tools" OFF)
+option(EVMC_EXAMPLES "Build EVMC examples" ${EVMC_TESTING})
+option(HUNTER_ENABLED "Enable Hunter package manager support" "${EVMC_TESTING}")
+
 include(cmake/cable/bootstrap.cmake)
 include(CableBuildType)
 include(CableCompilerSettings)
-include(CablePackage)
-include(CMakeDependentOption)
+include(CableToolchains)
 include(CMakePackageConfigHelpers)
 include(GNUInstallDirs)
 
-option(EVMC_INSTALL "Enable EVMC installation (e.g. make install)" ON)
-
-option(EVMC_TESTING "Build everything (libraries, tools, examples, internal tests)" OFF)
-
-cmake_dependent_option(EVMC_TOOLS "Build EVMC tools" OFF
-    "NOT EVMC_TESTING" ON)
-
-cmake_dependent_option(EVMC_EXAMPLES "Build EVMC examples" OFF
-    "NOT EVMC_TESTING" ON)
-
-option(HUNTER_ENABLED "Enable Hunter package manager support" ${EVMC_TOOLS})
-
-if(HUNTER_ENABLED)
-    set(HUNTER_CONFIGURATION_TYPES Release CACHE STRING "Build type of Hunter packages")
+if(EVMC_TESTING)
     include(HunterGate)
-    include(Hunter/init)
+    include(HunterConfig)
     include(defaults/HunterCacheServers)
 endif()
 
-cable_set_build_type(DEFAULT Release CONFIGURATION_TYPES Debug Release)
+cable_configure_toolchain(DEFAULT cxx11-pic)
 
 project(evmc)
-set(PROJECT_VERSION 7.2.0-alpha.0)
+set(PROJECT_VERSION 6.1.1)
+
+cable_set_build_type(DEFAULT Release CONFIGURATION_TYPES Debug Release)
 
 cable_configure_compiler(NO_STACK_PROTECTION)
-if(CABLE_COMPILER_CLANG)
-    set(CMAKE_C_FLAGS_COVERAGE "-fprofile-instr-generate -fcoverage-mapping")
-    set(CMAKE_CXX_FLAGS_COVERAGE "-fprofile-instr-generate -fcoverage-mapping")
-elseif(CABLE_COMPILER_GNU)
-    set(CMAKE_C_FLAGS_COVERAGE "--coverage")
-    set(CMAKE_CXX_FLAGS_COVERAGE "--coverage")
-endif()
 
 set(include_dir ${PROJECT_SOURCE_DIR}/include)
 
+add_library(evmc INTERFACE)
+add_library(evmc::evmc ALIAS evmc)
+target_include_directories(evmc INTERFACE $<BUILD_INTERFACE:${include_dir}>$<INSTALL_INTERFACE:include>)
+install(TARGETS evmc EXPORT evmcTargets)
+
+install(DIRECTORY include/evmc DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
 add_subdirectory(lib)
-
-if(EVMC_TOOLS)
-    add_subdirectory(tools)
-endif()
-
-if(EVMC_EXAMPLES)
-    add_subdirectory(examples)
-endif()
 
 if(EVMC_TESTING)
     enable_testing()
     add_subdirectory(test)
+endif()
+
+if(EVMC_EXAMPLES OR EVMC_TESTING)
+    add_subdirectory(examples)
 endif()
 
 write_basic_package_version_file(evmcConfigVersion.cmake COMPATIBILITY ExactVersion)
@@ -79,32 +63,25 @@ configure_package_config_file(
     INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/evmc
 )
 
-if(EVMC_INSTALL)
-    install(DIRECTORY include/evmc DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-
-    install(
-        EXPORT evmcTargets
-        NAMESPACE evmc::
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/evmc
-    )
-    install(
-        FILES
-        ${CMAKE_CURRENT_BINARY_DIR}/evmcConfig.cmake
-        ${CMAKE_CURRENT_BINARY_DIR}/evmcConfigVersion.cmake
-        cmake/EVMC.cmake
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/evmc
-    )
-endif()
-
-set(
-    CPACK_SOURCE_IGNORE_FILES
-    /\\\\.git/
-    /\\\\.idea/
-    /build/
-    /cmake-build-.*/
-    /bindings/
-    /Cargo.lock
-    /Cargo.toml
-    /target/
+install(
+    EXPORT evmcTargets
+    NAMESPACE evmc::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/evmc
 )
-cable_add_archive_package()
+install(
+    FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/evmcConfig.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/evmcConfigVersion.cmake
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/evmc
+)
+
+if(WIN32)
+    set(CPACK_GENERATOR ZIP)
+else()
+    set(CPACK_GENERATOR TGZ)
+endif()
+string(TOLOWER ${CMAKE_SYSTEM_NAME} system_name)
+set(CPACK_PACKAGE_FILE_NAME ${PROJECT_NAME}-${PROJECT_VERSION}-${system_name})
+set(CPACK_PACKAGE_CHECKSUM SHA256)
+set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY FALSE)
+include(CPack)

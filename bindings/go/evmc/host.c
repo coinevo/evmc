@@ -1,11 +1,18 @@
 /* EVMC: Ethereum Client-VM Connector API.
- * Copyright 2018-2019 The EVMC Authors.
- * Licensed under the Apache License, Version 2.0.
+ * Copyright 2018 The EVMC Authors.
+ * Licensed under the Apache License, Version 2.0. See the LICENSE file.
  */
 
 #include "_cgo_export.h"
 
 #include <stdlib.h>
+
+
+void evmc_go_free_result_output(const struct evmc_result* result)
+{
+    free((void*)result->output_data);
+}
+
 
 /* Go does not support exporting functions with parameters with const modifiers,
  * so we have to cast function pointers to the function types defined in EVMC.
@@ -32,7 +39,7 @@ const struct evmc_host_interface evmc_go_host = {
 #pragma GCC diagnostic error "-Wconversion"
 static inline void go_exported_functions_type_checks()
 {
-    struct evmc_host_context* context = NULL;
+    struct evmc_context* context = NULL;
     evmc_address* address = NULL;
     evmc_bytes32 bytes32;
     uint8_t* data = NULL;

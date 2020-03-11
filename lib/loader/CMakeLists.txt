@@ -1,6 +1,6 @@
 # EVMC: Ethereum Client-VM Connector API.
-# Copyright 2018-2019 The EVMC Authors.
-# Licensed under the Apache License, Version 2.0.
+# Copyright 2018 The EVMC Authors.
+# Licensed under the Apache License, Version 2.0. See the LICENSE file.
 
 add_library(
     loader STATIC
@@ -13,8 +13,9 @@ set_target_properties(loader PROPERTIES
     OUTPUT_NAME evmc-loader
     POSITION_INDEPENDENT_CODE TRUE
 )
-target_link_libraries(loader INTERFACE ${CMAKE_DL_LIBS} PUBLIC evmc::evmc)
+target_include_directories(loader PUBLIC
+    $<BUILD_INTERFACE:${include_dir}>$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+)
+target_link_libraries(loader INTERFACE ${CMAKE_DL_LIBS})
 
-if(EVMC_INSTALL)
-    install(TARGETS loader EXPORT evmcTargets DESTINATION ${CMAKE_INSTALL_LIBDIR})
-endif()
+install(TARGETS loader EXPORT evmcTargets DESTINATION ${CMAKE_INSTALL_LIBDIR})

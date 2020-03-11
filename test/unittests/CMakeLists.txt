@@ -1,41 +1,50 @@
 # EVMC: Ethereum Client-VM Connector API.
-# Copyright 2018-2019 The EVMC Authors.
-# Licensed under the Apache License, Version 2.0.
+# Copyright 2018 The EVMC Authors.
+# Licensed under the Apache License, Version 2.0. See the LICENSE file.
 
-include(GoogleTest)
+add_library(vm-mock SHARED vm_mock.c)
+target_link_libraries(vm-mock PRIVATE evmc)
 
-hunter_add_package(GTest)
-find_package(GTest CONFIG REQUIRED)
+add_library(vm-mock-default SHARED vm_mock_default.c)
+target_link_libraries(vm-mock-default PRIVATE evmc)
 
-# Disable support for std::tr1::tuple in GTest. This causes problems in Visual Studio 2015.
-set_target_properties(GTest::gtest PROPERTIES INTERFACE_COMPILE_DEFINITIONS GTEST_HAS_TR1_TUPLE=0)
 
-add_library(loader-mocked STATIC ${PROJECT_SOURCE_DIR}/lib/loader/loader.c)
-target_link_libraries(loader-mocked PRIVATE evmc::evmc)
-target_compile_definitions(loader-mocked PRIVATE EVMC_LOADER_MOCK=1)
+if(UNIX)
+    set(cmd create_symlink)
+else()
+    set(cmd copy)
+endif()
+
+add_custom_command(
+    TARGET vm-mock POST_BUILD
+
+    COMMAND ${CMAKE_COMMAND} -E ${cmd} $<TARGET_FILE:vm-mock> libaaa.so
+    COMMAND ${CMAKE_COMMAND} -E ${cmd} $<TARGET_FILE:vm-mock> double_prefix_aaa.evm
+    COMMAND ${CMAKE_COMMAND} -E ${cmd} $<TARGET_FILE:vm-mock> double-prefix-aaa.evm
+    COMMAND ${CMAKE_COMMAND} -E ${cmd} $<TARGET_FILE:vm-mock> eee-bbb.dll
+    COMMAND ${CMAKE_COMMAND} -E ${cmd} $<TARGET_FILE:vm-mock> libeee1.so
+    COMMAND ${CMAKE_COMMAND} -E ${cmd} $<TARGET_FILE:vm-mock> eee2.so
+    COMMAND ${CMAKE_COMMAND} -E ${cmd} $<TARGET_FILE:vm-mock> libeee3.x
+    COMMAND ${CMAKE_COMMAND} -E ${cmd} $<TARGET_FILE:vm-mock> eee4
+    COMMAND ${CMAKE_COMMAND} -E ${cmd} $<TARGET_FILE:vm-mock> _
+    COMMAND ${CMAKE_COMMAND} -E ${cmd} $<TARGET_FILE:vm-mock> lib_.so
+    COMMAND ${CMAKE_COMMAND} -E ${cmd} $<TARGET_FILE:vm-mock> ../aaa.evm
+    COMMAND ${CMAKE_COMMAND} -E ${cmd} $<TARGET_FILE:vm-mock> failure.vm
+    COMMAND ${CMAKE_COMMAND} -E ${cmd} $<TARGET_FILE:vm-mock> abi42.vm
+
+    COMMAND ${CMAKE_COMMAND} -E ${cmd} $<TARGET_FILE:vm-mock-default> default.evmc
+
+    COMMAND ${CMAKE_COMMAND} -E touch empty.file
+)
 
 add_executable(
-    evmc-unittests
-    cpp_test.cpp
-    helpers_test.cpp
-    instructions_test.cpp
-    loader_mock.h
-    loader_test.cpp
-    mocked_host_test.cpp
+    evmc-test
+    test_cpp.cpp
+    test_helpers.cpp
+    test_instructions.cpp
+    test_loader.cpp
 )
 
-target_link_libraries(
-    evmc-unittests
-    PRIVATE
-    loader-mocked
-    evmc::example-vm-static
-    evmc::example-precompiles-vm-static
-    evmc::instructions
-    evmc::evmc_cpp
-    GTest::gtest_main
-)
-set_target_properties(evmc-unittests PROPERTIES RUNTIME_OUTPUT_DIRECTORY ..)
-
-gtest_add_tests(TARGET evmc-unittests TEST_PREFIX ${PROJECT_NAME}/unittests/ TEST_LIST unittests)
-
-set_tests_properties(${unittests} PROPERTIES ENVIRONMENT LLVM_PROFILE_FILE=${CMAKE_BINARY_DIR}/unittests-%p.profraw)
+target_link_libraries(evmc-test PRIVATE evmc-example-vm instructions loader GTest::gtest GTest::main)
+set_target_properties(evmc-test PROPERTIES RUNTIME_OUTPUT_DIRECTORY ..)
+add_dependencies(evmc-test vm-mock)

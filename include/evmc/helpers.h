@@ -1,12 +1,12 @@
 /* EVMC: Ethereum Client-VM Connector API.
- * Copyright 2018-2019 The EVMC Authors.
- * Licensed under the Apache License, Version 2.0.
+ * Copyright 2018 The EVMC Authors.
+ * Licensed under the Apache License, Version 2.0. See the LICENSE file.
  */
 
 /**
  * EVMC Helpers
  *
- * A collection of C helper functions for invoking a VM instance methods.
+ * A collection of helper functions for invoking a VM instance methods.
  * These are convenient for languages where invoking function pointers
  * is "ugly" or impossible (such as Go).
  *
@@ -18,39 +18,38 @@
 #pragma once
 
 #include <evmc/evmc.h>
-#include <stdlib.h>
-#include <string.h>
 
 /**
- * Returns true if the VM has a compatible ABI version.
+ * Returns true if the VM instance has a compatible ABI version.
  */
-static inline bool evmc_is_abi_compatible(struct evmc_vm* vm)
+static inline int evmc_is_abi_compatible(struct evmc_instance* instance)
 {
-    return vm->abi_version == EVMC_ABI_VERSION;
+    return instance->abi_version == EVMC_ABI_VERSION;
 }
 
 /**
- * Returns the name of the VM.
+ * Returns the name of the VM instance.
  */
-static inline const char* evmc_vm_name(struct evmc_vm* vm)
+static inline const char* evmc_vm_name(struct evmc_instance* instance)
 {
-    return vm->name;
+    return instance->name;
 }
 
 /**
- * Returns the version of the VM.
+ * Returns the version of the VM instance.
  */
-static inline const char* evmc_vm_version(struct evmc_vm* vm)
+static inline const char* evmc_vm_version(struct evmc_instance* instance)
 {
-    return vm->version;
+    return instance->version;
 }
 
 /**
- * Checks if the VM has the given capability.
+ * Checks if the VM instance has the given capability.
  *
  * @see evmc_get_capabilities_fn
  */
-static inline bool evmc_vm_has_capability(struct evmc_vm* vm, enum evmc_capabilities capability)
+static inline bool evmc_vm_has_capability(struct evmc_instance* vm,
+                                          enum evmc_capabilities capability)
 {
     return (vm->get_capabilities(vm) & (evmc_capabilities_flagset)capability) != 0;
 }
@@ -60,23 +59,36 @@ static inline bool evmc_vm_has_capability(struct evmc_vm* vm, enum evmc_capabili
  *
  * @see evmc_destroy_fn
  */
-static inline void evmc_destroy(struct evmc_vm* vm)
+static inline void evmc_destroy(struct evmc_instance* instance)
 {
-    vm->destroy(vm);
+    instance->destroy(instance);
 }
 
 /**
- * Sets the option for the VM, if the feature is supported by the VM.
+ * Sets the option for the VM instance, if the feature is supported by the VM.
  *
  * @see evmc_set_option_fn
  */
-static inline enum evmc_set_option_result evmc_set_option(struct evmc_vm* vm,
+static inline enum evmc_set_option_result evmc_set_option(struct evmc_instance* instance,
                                                           char const* name,
                                                           char const* value)
 {
-    if (vm->set_option)
-        return vm->set_option(vm, name, value);
+    if (instance->set_option)
+        return instance->set_option(instance, name, value);
     return EVMC_SET_OPTION_INVALID_NAME;
+}
+
+/**
+ * Sets the tracer callback for the VM instance, if the feature is supported by the VM.
+ *
+ * @see evmc_set_tracer_fn
+ */
+static inline void evmc_set_tracer(struct evmc_instance* instance,
+                                   evmc_trace_callback callback,
+                                   struct evmc_tracer_context* context)
+{
+    if (instance->set_tracer)
+        instance->set_tracer(instance, callback, context);
 }
 
 /**
@@ -84,80 +96,24 @@ static inline enum evmc_set_option_result evmc_set_option(struct evmc_vm* vm,
  *
  * @see evmc_execute_fn.
  */
-static inline struct evmc_result evmc_execute(struct evmc_vm* vm,
-                                              const struct evmc_host_interface* host,
-                                              struct evmc_host_context* context,
+static inline struct evmc_result evmc_execute(struct evmc_instance* instance,
+                                              struct evmc_context* context,
                                               enum evmc_revision rev,
                                               const struct evmc_message* msg,
                                               uint8_t const* code,
                                               size_t code_size)
 {
-    return vm->execute(vm, host, context, rev, msg, code, code_size);
-}
-
-/// The evmc_result release function using free() for releasing the memory.
-///
-/// This function is used in the evmc_make_result(),
-/// but may be also used in other case if convenient.
-///
-/// @param result The result object.
-static void evmc_free_result_memory(const struct evmc_result* result)
-{
-    free((uint8_t*)result->output_data);
-}
-
-/// Creates the result from the provided arguments.
-///
-/// The provided output is copied to memory allocated with malloc()
-/// and the evmc_result::release function is set to one invoking free().
-///
-/// In case of memory allocation failure, the result has all fields zeroed
-/// and only evmc_result::status_code is set to ::EVMC_OUT_OF_MEMORY internal error.
-///
-/// @param status_code  The status code.
-/// @param gas_left     The amount of gas left.
-/// @param output_data  The pointer to the output.
-/// @param output_size  The output size.
-static inline struct evmc_result evmc_make_result(enum evmc_status_code status_code,
-                                                  int64_t gas_left,
-                                                  const uint8_t* output_data,
-                                                  size_t output_size)
-{
-    struct evmc_result result;
-    memset(&result, 0, sizeof(result));
-
-    if (output_size != 0)
-    {
-        uint8_t* buffer = (uint8_t*)malloc(output_size);
-
-        if (!buffer)
-        {
-            result.status_code = EVMC_OUT_OF_MEMORY;
-            return result;
-        }
-
-        memcpy(buffer, output_data, output_size);
-        result.output_data = buffer;
-        result.output_size = output_size;
-        result.release = evmc_free_result_memory;
-    }
-
-    result.status_code = status_code;
-    result.gas_left = gas_left;
-    return result;
+    return instance->execute(instance, context, rev, msg, code, code_size);
 }
 
 /**
  * Releases the resources allocated to the execution result.
  *
- * @param result  The result object to be released. MUST NOT be NULL.
- *
- * @see evmc_result::release() evmc_release_result_fn
+ * @see evmc_release_result_fn
  */
 static inline void evmc_release_result(struct evmc_result* result)
 {
-    if (result->release)
-        result->release(result);
+    result->release(result);
 }
 
 

@@ -10,7 +10,6 @@ Ethereum Clients. On the EVM side it supports classic EVM1 and [ewasm].
 On the Client-side it defines the interface for EVM implementations
 to access Ethereum environment and state.
 
-
 ## Usage
 
 ### Documentation
@@ -19,23 +18,13 @@ Please visit the [documentation].
 
 ### Languages support
 
-| Language                      | Supported Versions    | Supported Compilers            | Feature Support
-| ----------------------------- | --------------------- | ------------------------------ | -------------------
-| **C**                         | C99, C11              | GCC 6+, clang 3.8+, MSVC 2015+ | Host- and VM-side
-| **C++**                       | C++11, C++14, C++17   | GCC 6+, clang 3.8+, MSVC 2015+ | Host- and VM-side
-| **Go** _(bindings)_           | 1.9 - 1.12            |                                | Host-side only
-| **Rust** _(bindings)_[¹](#n1) | 2018 edition          | 1.37.0 and newer               | VM-side only
-| **Java** _(bindings)_         | 11                    |                                | Host-side only
+| Language                | Supported Versions  |
+| ----------------------- | ------------------- |
+| **C**                   | C90, C99, C11       |
+| **C++** _(helpers)_[^1] | C++11, C++14, C++17 |
+| **Go** _(bindings)_     | 1.9, 1.10, 1.11     |
 
-<b id="n1">1</b>. Rust support is limited and not complete yet, but it is mostly functional already. Breaking changes are possible at this stage.
-
-### Testing tools
-
-* **evmc run** ([tools/evmc]) — executes bytecode in any EVMC-compatible VM implementation.
-* **evmc-vmtester** ([tools/vmtester]) — can test any EVM implementation for compatibility with EVMC.
-* **evm-test** ([evmone → test/unittests]) — allows running the collection of [evmone]'s unit tests on any EVMC-compatible EVM implementation.
-* **evmone-fuzzer** ([evmone → test/fuzzer]) — differential fuzzer for EVMC-compatible EVM implementations. 
-
+[^1]: C++ support is provided by C headers and some optional C++ helpers.
 
 ## Related projects
 
@@ -43,11 +32,7 @@ Please visit the [documentation].
 
 - [aleth-interpreter]
 - [evmjit]
-- [evmone]
 - [Hera]
-- [Hera.rs]
-- [Daytona]
-- [eip1962-evmc] (EIP-2003 style precompile)
 
 ### Clients
 
@@ -56,7 +41,6 @@ Please visit the [documentation].
 - [go-ethereum] (in progress)
 - [pyevm] (in progress)
 - [pyethereum] (abandoned)
-- [Solidity] (for integration testing)
 
 
 ## Maintainers
@@ -94,24 +78,15 @@ Licensed under the [MIT License](LICENSE).
 [documentation]: https://ethereum.github.io/evmc
 [ewasm]: https://github.com/ewasm/design
 [evmjit]: https://github.com/ethereum/evmjit
-[evmone]: https://github.com/ethereum/evmone
-[evmone → test/fuzzer]: https://github.com/ethereum/evmone/tree/master/test/fuzzer
-[evmone → test/unittests]: https://github.com/ethereum/evmone/tree/master/test/unittests
 [Hera]: https://github.com/ewasm/hera
-[Hera.rs]: https://github.com/ewasm/hera.rs
-[Daytona]: https://github.com/axic/daytona
-[eip1962-evmc]: https://github.com/axic/eip1962-evmc
 [Gitter]: https://gitter.im/ethereum/evmc
 [aleth-interpreter]: https://github.com/ethereum/aleth/tree/master/libaleth-interpreter
 [aleth]: https://github.com/ethereum/aleth
-[Solidity]: https://github.com/ethereum/solidity
 [nim-evmc]: https://github.com/status-im/nim-evmc
-[go-ethereum]: https://github.com/ethereum/go-ethereum/pull/17954
+[go-ethereum]: https://github.com/ethereum/go-ethereum/pull/17050
 [pyevm]: https://github.com/ethereum/py-evm
 [pyethereum]: https://github.com/ethereum/pyethereum/pull/406
 [standard readme]: https://github.com/RichardLitt/standard-readme
-[tools/evmc]: https://github.com/ethereum/evmc/tree/master/tools/evmc
-[tools/vmtester]: https://github.com/ethereum/evmc/tree/master/tools/vmtester
 
-[gitter badge]: https://img.shields.io/gitter/room/ethereum/evmc.svg
-[readme style standard badge]: https://img.shields.io/badge/readme%20style-standard-brightgreen.svg
+[gitter badge]: https://img.shields.io/gitter/room/ethereum/evmc.svg?style=flat-square
+[readme style standard badge]: https://img.shields.io/badge/readme%20style-standard-brightgreen.svg?style=flat-square
